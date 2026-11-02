@@ -1,0 +1,317 @@
+:root {
+  --fondo: #07090f;
+  --tinta: #f4efe4;
+  --tenue: #b9b2a3;
+  --oro: #ffc861;
+  --acento: #6fe0ff;
+  --peligro: #ff7a6b;
+  --ok: #7be38f;
+  --panel: rgba(16, 20, 32, 0.92);
+  --borde: rgba(255, 220, 160, 0.28);
+  --letra: "Avenir Next", "Avenir", "Trebuchet MS", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--letra);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.sin-raton { cursor: none; }
+
+#escena, #capa, #fichas, #ui {
+  position: fixed;
+  inset: 0;
+}
+#escena canvas { display: block; }
+#capa { pointer-events: none; z-index: 15; }
+body.calibrando-auto #capa { visibility: hidden; }
+#fichas { pointer-events: none; z-index: 6; }
+#ui { z-index: 10; pointer-events: none; }
+#ui > * { pointer-events: auto; }
+
+/* ---------- Vestíbulo (menú de salas) ---------- */
+.vestibulo {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 4vmin 5vmin;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 200, 97, 0.16), transparent 60%),
+    radial-gradient(ellipse at 50% 120%, rgba(111, 224, 255, 0.10), transparent 55%),
+    var(--fondo);
+}
+.vestibulo h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 6vmin;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.vestibulo h1 small {
+  display: block;
+  font-size: 2.6vmin;
+  font-weight: 500;
+  color: var(--tenue);
+  margin-top: 0.6vmin;
+  letter-spacing: 0.04em;
+}
+.salas {
+  display: grid;
+  grid-template-columns: repeat(var(--columnas, 2), 1fr);
+  gap: 3.2vmin;
+  padding: 3vmin 0;
+  align-content: center;
+}
+.sala {
+  position: relative;
+  border-radius: 3vmin;
+  padding: 3vmin;
+  min-height: 26vmin;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color) 30%, #111827), #0d111b 70%);
+  border: 0.35vmin solid color-mix(in srgb, var(--color) 55%, transparent);
+  box-shadow: 0 0 6vmin color-mix(in srgb, var(--color) 18%, transparent);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2.4vmin;
+  align-items: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+}
+.sala.encima {
+  transform: scale(1.04);
+  box-shadow: 0 0 9vmin color-mix(in srgb, var(--color) 50%, transparent);
+}
+.sala .icono { font-size: 13vmin; line-height: 1; filter: drop-shadow(0 1vmin 2vmin rgba(0,0,0,0.5)); }
+/* Con 6 salas o más, tarjetas más compactas: icono arriba y texto abajo */
+.salas.muchas .sala { grid-template-columns: 1fr; text-align: center; min-height: 0; padding: 2.4vmin; gap: 1vmin; }
+.salas.muchas .sala .icono { font-size: 10vmin; }
+.salas.muchas .sala h2 { font-size: 3.8vmin; }
+.salas.muchas .sala p { font-size: 2.1vmin; }
+.sala .tema {
+  font-size: 2vmin;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color);
+  font-weight: 700;
+}
+.sala h2 { margin: 0.6vmin 0 1vmin; font-size: 4.6vmin; line-height: 1.05; }
+.sala p { margin: 0; font-size: 2.4vmin; color: var(--tenue); line-height: 1.35; }
+.sala .llenado {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 1.2vmin;
+  width: calc(var(--progreso, 0) * 100%);
+  background: var(--color);
+  box-shadow: 0 0 2vmin var(--color);
+}
+.instruccion {
+  text-align: center;
+  font-size: 3vmin;
+  color: var(--oro);
+  animation: latido 2.4s ease-in-out infinite;
+}
+@keyframes latido { 50% { opacity: 0.55; } }
+
+/* ---------- Fichas de museo ---------- */
+.ficha {
+  position: absolute;
+  width: min(46vmin, 520px);
+  padding: 2.4vmin 2.8vmin;
+  border-radius: 2.4vmin;
+  background: var(--panel);
+  border: 0.3vmin solid var(--borde);
+  border-left: 1vmin solid var(--color, var(--oro));
+  box-shadow: 0 2vmin 6vmin rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transform: translateY(1.5vmin) scale(0.96);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.ficha.visible { opacity: 1; transform: none; }
+.ficha .tema { font-size: 1.8vmin; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color, var(--oro)); font-weight: 700; }
+.ficha h3 { margin: 0.4vmin 0 1vmin; font-size: 4vmin; line-height: 1.05; }
+.ficha p { margin: 0.6vmin 0 0; font-size: 2.35vmin; line-height: 1.4; color: #e7e1d4; }
+.ficha .dato { margin-top: 1.2vmin; font-size: 2.1vmin; color: var(--oro); font-weight: 600; }
+
+/* ---------- Ajustes (para el encargado) ---------- */
+.ajustes {
+  position: absolute;
+  inset: 0;
+  background: #0b0e16;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 24px;
+  padding: 24px;
+  font-size: 16px;
+}
+.ajustes .vista {
+  position: relative;
+  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.ajustes .vista video, .ajustes .vista canvas.marcas {
+  position: absolute;
+  max-width: 100%;
+  max-height: 100%;
+}
+.ajustes .vista video { width: 100%; height: 100%; object-fit: contain; }
+.ajustes .vista canvas.marcas { width: 100%; height: 100%; cursor: crosshair; }
+.ajustes .panel { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.ajustes h2 { margin: 0; font-size: 26px; }
+.ajustes h3 { margin: 6px 0 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--oro); }
+.ajustes p, .ajustes label { margin: 0; color: var(--tenue); line-height: 1.45; }
+.ajustes .estado { padding: 10px 12px; border-radius: 10px; background: #151a27; color: var(--tinta); }
+.ajustes .estado.ok { border-left: 5px solid var(--ok); }
+.ajustes .estado.mal { border-left: 5px solid var(--peligro); }
+.ajustes button, .ajustes select {
+  font: inherit;
+  font-weight: 600;
+  color: var(--tinta);
+  background: #1d2436;
+  border: 1px solid #343e58;
+  border-radius: 10px;
+  padding: 11px 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.ajustes button:hover { background: #26304a; }
+.ajustes button.principal { background: #2f5d3a; border-color: #4a8f5a; }
+.ajustes button.principal:hover { background: #3a7047; }
+.ajustes .fila { display: flex; gap: 8px; flex-wrap: wrap; }
+.ajustes .fila > * { flex: 1; }
+.ajustes input[type=range] { width: 100%; }
+.ajustes .deslizador { display: grid; grid-template-columns: 90px 1fr 54px; gap: 8px; align-items: center; }
+.ajustes kbd { background: #222a3d; border-radius: 5px; padding: 1px 6px; font-family: inherit; color: var(--tinta); }
+
+/* ---------- Pantalla de calibración automática ---------- */
+.calibrando {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  cursor: none;
+}
+.calibrando .blanco { position: absolute; inset: 0; background: #fff; }
+.calibrando .blanco[hidden], .calibrando .punto[hidden], .calibrando .mensaje[hidden] { display: none; }
+/* Barra tenue: casi no ilumina la mesa, así no estorba a la cámara */
+.calibrando .barra {
+  position: absolute; left: 35%; right: 35%; bottom: 1.5vmin; height: 0.5vmin;
+  background: #111; border-radius: 1vmin; overflow: hidden;
+}
+.calibrando .barra i { display: block; height: 100%; width: 0; background: #3a3a3a; }
+.ajustes .resultado { padding: 12px 14px; border-radius: 10px; background: #151a27; }
+.ajustes .resultado.ok { border-left: 5px solid var(--ok); }
+.ajustes .resultado.mal { border-left: 5px solid var(--peligro); }
+.ajustes .resultado strong { font-size: 18px; color: var(--tinta); }
+.ajustes .resultado p { margin-top: 4px; }
+.ajustes .resultado b { color: var(--oro); }
+.ajustes .casilla { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.ajustes .casilla input { margin-top: 4px; width: 18px; height: 18px; }
+.calibrando .punto {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+.calibrando .mensaje {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  color: #555;
+  font-size: 22px;
+  text-align: center;
+}
+.esquina-manual {
+  position: absolute;
+  width: 90px; height: 90px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  font-size: 54px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+/* ---------- Aviso ---------- */
+#aviso {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: 4vmin;
+  transform: translateX(-50%);
+  max-width: 80vw;
+  padding: 1.6vmin 2.6vmin;
+  border-radius: 1.6vmin;
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  font-size: 2.4vmin;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .instruccion { animation: none; }
+  .ficha, .sala { transition: none; }
+}
+
+/* ---------- Botón para volver a las salas ---------- */
+.volver {
+  position: absolute;
+  left: 3vmin;
+  bottom: 3vmin;
+  width: 12vmin;
+  height: 12vmin;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.3vmin;
+  background:
+    radial-gradient(circle, rgba(12, 16, 26, 0.92) 62%, transparent 63%),
+    conic-gradient(var(--oro) calc(var(--progreso, 0) * 360deg), rgba(255, 255, 255, 0.18) 0);
+  cursor: pointer;
+  z-index: 12;
+}
+.volver[hidden] { display: none; }
+.volver span { font-size: 4.4vmin; line-height: 1; }
+.volver small { font-size: 1.9vmin; font-weight: 700; color: var(--tinta); letter-spacing: 0.06em; }
+
+/* ---------- Retos ---------- */
+.reto {
+  position: absolute;
+  top: 2.2vmin;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 70vw;
+  padding: 1.4vmin 3vmin;
+  border-radius: 5vmin;
+  background: rgba(16, 20, 32, 0.9);
+  border: 0.35vmin solid var(--oro);
+  box-shadow: 0 0 4vmin rgba(255, 200, 97, 0.35);
+  color: var(--tinta);
+  font-size: 3vmin;
+  font-weight: 700;
+  text-align: center;
+  z-index: 11;
+  pointer-events: none !important;
+}
+.reto[hidden] { display: none; }
+.reto small { display: block; font-size: 1.7vmin; letter-spacing: 0.14em; text-transform: uppercase; color: var(--oro); margin-bottom: 0.3vmin; }
+.reto .estrella { margin-right: 0.8vmin; }
+.confeti { position: fixed; inset: 0; z-index: 16; pointer-events: none; }
+.ajustes table.uso { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ajustes table.uso th, .ajustes table.uso td { padding: 6px 8px; border-bottom: 1px solid #252d42; text-align: right; color: var(--tinta); }
+.ajustes table.uso th { color: var(--oro); font-weight: 600; }
+.ajustes table.uso th:first-child, .ajustes table.uso td:first-child { text-align: left; }

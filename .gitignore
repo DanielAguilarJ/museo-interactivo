@@ -1,0 +1,8 @@
+.venv/
+.perfil-chrome/
+servidor.log
+config.json
+config.tmp
+__pycache__/
+camara/ptz-pixy
+.DS_Store
