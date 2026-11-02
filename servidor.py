@@ -10,6 +10,8 @@ Uso: .venv/bin/python servidor.py [puerto]
 import json
 import os
 import sys
+import urllib.error
+import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -28,6 +30,11 @@ ORIGENES = {
     "https://danielaguilarj.github.io",
     *[o.strip() for o in os.environ.get("MUSEO_ORIGENES", "").split(",") if o.strip()],
 }
+# Espejo del museo publicado: con internet, esta Mac entrega la última versión
+# publicada (así se actualiza sola, como las sedes con Windows); sin internet,
+# entrega la copia de la carpeta web/. MUSEO_ESPEJO=0 lo apaga.
+PUBLICADO = os.environ.get("MUSEO_PUBLICADO", "https://danielaguilarj.github.io/museo-interactivo/")
+ESPEJO = os.environ.get("MUSEO_ESPEJO", "1") != "0"
 
 
 class Manejador(SimpleHTTPRequestHandler):
@@ -108,7 +115,41 @@ class Manejador(SimpleHTTPRequestHandler):
                 except ValueError:
                     return self._json({})
             return self._json({})
+        if ESPEJO and not self.path.startswith("/api/") and self._desde_publicado():
+            return
         return super().do_GET()
+
+    def _desde_publicado(self):
+        """Entrega el archivo pedido desde el museo publicado. False si no hay internet."""
+        ruta = (self.path or "/").lstrip("/")
+        if ".." in ruta or "\\" in ruta:
+            return False
+        enviado = False
+        try:
+            # Siempre la dirección fija del museo: nunca se sigue otra página
+            with urllib.request.urlopen(PUBLICADO + ruta, timeout=6) as r:
+                self.send_response(200)
+                enviado = True
+                tipo = r.headers.get("Content-Type") or self.guess_type(ruta.split("?")[0])
+                self.send_header("Content-Type", tipo)
+                largo = r.headers.get("Content-Length")
+                if largo:
+                    self.send_header("Content-Length", largo)
+                self.end_headers()
+                while True:
+                    trozo = r.read(256 * 1024)
+                    if not trozo:
+                        break
+                    self.wfile.write(trozo)
+            return True
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                self.send_error(404)
+                return True
+            return False
+        except (urllib.error.URLError, TimeoutError, OSError):
+            # Si ya se empezó a mandar, la conexión quedó cortada: no se manda otra respuesta
+            return enviado
 
     def do_POST(self):
         # Solo se aceptan peticiones de la propia página del museo.

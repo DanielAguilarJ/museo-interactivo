@@ -9,7 +9,6 @@
 import { abrirPixy, hayWebHID, modoMuseoHID } from './pixy-hid.js';
 
 const enLocal = () => ['127.0.0.1', 'localhost'].includes(location.hostname);
-const esMac = () => /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 async function pedir(base, ruta, cuerpo, ms = 2500) {
   try {
@@ -24,9 +23,14 @@ async function pedir(base, ruta, cuerpo, ms = 2500) {
   }
 }
 
-/** ¿Hay un agente local? En el museo publicado solo se busca en Mac (en Windows no hace falta). */
+/**
+ * ¿Hay un agente local? En Mac el museo se abre desde el propio agente
+ * (127.0.0.1), que trae la versión publicada. Desde la dirección de internet
+ * solo se busca si se pidió (config.agenteLocal), porque Chrome bloquea esos
+ * pedidos salvo permiso de «red local».
+ */
 async function buscarAgente(config) {
-  const candidatos = enLocal() ? [''] : (esMac() || config?.agenteLocal) ? ['http://127.0.0.1:8777'] : [];
+  const candidatos = enLocal() ? [''] : config?.agenteLocal ? ['http://127.0.0.1:8777'] : [];
   for (const base of candidatos) {
     const r = await pedir(base, '/api/salud', undefined, 1200);
     if (r?.ok) return base;

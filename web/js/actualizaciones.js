@@ -40,7 +40,11 @@ export function iniciarActualizaciones({ estaLibre, avisar }) {
       const r = await fetch('./version.json', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
       if (!r.ok) throw new Error('sin respuesta (' + r.status + ')');
       const { version } = await r.json();
-      a.nueva = version && version !== VERSION ? version : null;
+      // Solo hacia adelante: si llega una versión más vieja (por ejemplo la
+      // copia local de una Mac sin internet), no se «actualiza» hacia atrás.
+      // Las versiones son AAAA.MM.DD-HHMM, así que se comparan como texto.
+      const fecha = /^\d{4}\.\d{2}\.\d{2}-\d{4}$/;
+      a.nueva = fecha.test(version || '') && fecha.test(VERSION) && version > VERSION ? version : null;
       if (a.nueva && a.registro) await a.registro.update();
       if (manual && a.nueva) avisar?.(`Descargando la versión ${a.nueva}…`, 6000);
       return { nueva: a.nueva };
@@ -53,7 +57,7 @@ export function iniciarActualizaciones({ estaLibre, avisar }) {
   setInterval(() => buscar(), CADA_MS);
   // Instalar la versión nueva en cuanto la mesa esté libre
   setInterval(() => {
-    if (esperando && estaLibre()) {
+    if (esperando && a.nueva && estaLibre()) {
       avisar?.('Instalando la versión nueva del museo…', 0);
       esperando.postMessage('activar');
       esperando = null;

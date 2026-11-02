@@ -52,6 +52,22 @@ const enviar = (method, params = {}) => new Promise((r) => { const id = ++n; pen
 await enviar('Runtime.enable');
 await enviar('Log.enable');
 await enviar('Page.enable');
+// MUSEO_PERMISOS="localNetworkAccess,..." concede permisos como si la persona pulsara «Permitir»
+if (process.env.MUSEO_PERMISOS) {
+  const v = await (await fetch(`http://127.0.0.1:${PUERTO_DEPURACION}/json/version`)).json();
+  const nav = new WebSocket(v.webSocketDebuggerUrl);
+  await new Promise((r) => nav.addEventListener('open', r, { once: true }));
+  const r = await new Promise((res) => {
+    nav.addEventListener('message', (e) => res(JSON.parse(e.data)), { once: true });
+    // "nombre:descriptor" usa Browser.setPermission (p. ej. "local-network-access:1")
+    const lista = process.env.MUSEO_PERMISOS.split(',');
+    if (lista[0].includes(':')) {
+      nav.send(JSON.stringify({ id: 1, method: 'Browser.setPermission', params: { origin: new URL(BASE).origin, permission: { name: lista[0].split(':')[0] }, setting: 'granted' } }));
+    } else nav.send(JSON.stringify({ id: 1, method: 'Browser.grantPermissions', params: { origin: new URL(BASE).origin, permissions: lista } }));
+  });
+  console.log('permisos ->', JSON.stringify(r.error || 'concedidos'));
+  nav.close();
+}
 await enviar('Page.navigate', { url: `${BASE}${ruta}` });
 await dormir(+espera);
 

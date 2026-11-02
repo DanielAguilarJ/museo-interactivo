@@ -9,6 +9,8 @@ PUERTO=8777
 URL="http://127.0.0.1:$PUERTO/"
 # El museo publicado: se actualiza solo y funciona sin internet tras la primera vez.
 PUBLICADO="https://danielaguilarj.github.io/museo-interactivo/"
+# «local»: el servidor entrega solo la copia de esta carpeta (para probar cambios)
+[ "$1" = "local" ] && export MUSEO_ESPEJO=0
 
 echo "🏛️  Museo Interactivo"
 
@@ -53,14 +55,16 @@ if [ ! -d "/Applications/Google Chrome.app" ]; then
   exit 1
 fi
 
-# Qué versión abrir: la publicada (se actualiza sola) salvo que se pida la
-# copia local ("Iniciar Museo.command local") o que la primera vez no haya internet.
-DESTINO="$PUBLICADO"
-if [ "$1" = "local" ]; then
-  DESTINO="$URL"
-elif [ ! -d .perfil-chrome ] && ! curl -s --max-time 4 "${PUBLICADO}version.json" > /dev/null; then
-  echo "Sin internet: abro la copia local de esta Mac."
-  DESTINO="$URL"
+# El servidor local entrega la última versión publicada (con internet) o la
+# copia de esta carpeta (sin internet). «?sw» guarda el museo en la Mac y
+# revisa actualizaciones cada 15 minutos, igual que en las sedes con Windows.
+# «Iniciar Museo.command local» usa solo la copia de esta carpeta (para probar cambios).
+DESTINO="${URL}?sw"
+[ "$1" = "local" ] && DESTINO="$URL"
+if curl -s --max-time 4 "${PUBLICADO}version.json" > /dev/null; then
+  echo "Con internet: el museo se mantiene al día solo."
+else
+  echo "Sin internet: uso la última versión guardada en esta Mac."
 fi
 echo "Abriendo $DESTINO"
 
