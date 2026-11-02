@@ -29,7 +29,11 @@ export function iniciarActualizaciones({ estaLibre, avisar }) {
   }).catch((e) => console.warn('Sin modo sin internet:', e));
 
   let recargando = false;
+  // La primera instalación no recarga (no había versión anterior que cambiar):
+  // así no se corta una calibración que esté corriendo justo en ese momento.
+  let habiaControlador = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!habiaControlador) { habiaControlador = true; return; }
     if (recargando) return;
     recargando = true;
     location.reload();
