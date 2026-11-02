@@ -2,7 +2,7 @@
 // computadora (funciona sin internet) y prepara las versiones nuevas en
 // segundo plano. La línea VERSION la escribe herramientas/publicar.mjs: al
 // cambiar, el navegador detecta un museo nuevo.
-const VERSION = '2026.11.02-2202';
+const VERSION = '2026.11.02-2213';
 const CACHE = 'museo-' + VERSION;
 const LISTA = 'precache.json';
 
