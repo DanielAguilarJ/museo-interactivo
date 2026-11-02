@@ -2,7 +2,7 @@
 // computadora (funciona sin internet) y prepara las versiones nuevas en
 // segundo plano. La línea VERSION la escribe herramientas/publicar.mjs: al
 // cambiar, el navegador detecta un museo nuevo.
-const VERSION = '2026.11.02-2142';
+const VERSION = '2026.11.02-2202';
 const CACHE = 'museo-' + VERSION;
 const LISTA = 'precache.json';
 
@@ -20,6 +20,13 @@ const clave = (u, h) => new URL(u + '?__h=' + h, self.registration.scope).href;
 
 self.addEventListener('install', (e) => {
   e.waitUntil((async () => {
+    // Nunca hacia atrás: si ya hay guardada una versión más nueva (por ejemplo,
+    // una Mac sin internet que entrega su copia vieja), esta no se instala.
+    const fecha = /^\d{4}\.\d{2}\.\d{2}-\d{4}$/;
+    if (fecha.test(VERSION)) {
+      const mayor = (await caches.keys()).some((n) => n.startsWith('museo-') && fecha.test(n.slice(6)) && n.slice(6) > VERSION);
+      if (mayor) throw new Error('Ya hay una versión más nueva guardada');
+    }
     const r = await fetch(LISTA + '?v=' + VERSION, { cache: 'no-store' });
     if (!r.ok) throw new Error('No hay lista de archivos');
     const lista = await r.clone().json();
